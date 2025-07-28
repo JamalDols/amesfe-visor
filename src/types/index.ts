@@ -6,6 +6,10 @@ export interface Photo {
   album_id?: string;
   file_size?: number;
   created_at: string;
+  albums?: {
+    id: string;
+    name: string;
+  };
 }
 
 export interface Album {

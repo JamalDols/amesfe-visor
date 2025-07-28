@@ -19,7 +19,18 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
       setLoading(true);
       console.log("🔄 Buscando fotos en la base de datos...");
 
-      let query = supabase.from("photos").select("*").order("created_at", { ascending: false });
+      let query = supabase
+        .from("photos")
+        .select(
+          `
+          *,
+          albums (
+            id,
+            name
+          )
+        `
+        )
+        .order("created_at", { ascending: false });
 
       // Si queremos solo fotos sin álbum
       if (showUnassigned) {
@@ -155,6 +166,7 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent text-white text-xs p-2 rounded-b-lg">
               {photo.description && <p className="truncate">{photo.description}</p>}
               {photo.year && <p>Año: {photo.year}</p>}
+              {photo.albums?.name && <p>Álbum: {photo.albums.name}</p>}
             </div>
           </div>
         ))}
