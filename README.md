@@ -130,14 +130,6 @@ Usa TailwindCSS v4 con:
 - ⏳ Galería pública
 - ⏳ Búsqueda y filtros
 
-## 📝 Desarrollo
-
-Para continuar con el desarrollo:
-
-1. Primero configura las variables de entorno
-2. Crea el usuario administrador en Supabase
-3. Di "continúa" para implementar la funcionalidad de upload
-
 ## 📄 Licencia
 
 MIT
