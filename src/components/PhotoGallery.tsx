@@ -139,7 +139,7 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
             {/* Overlay con botones */}
             <div className="absolute inset-0 group-hover:bg-black/10 transition-all duration-200 rounded-lg flex items-center justify-center">
               <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button onClick={() => setEditingPhoto(photo)} className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600" title="Editar foto">
+                <button onClick={() => setEditingPhoto(photo)} className="bg-blue-500 text-white p-2 rounded-full hover:bg-[#354564]" title="Editar foto">
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"

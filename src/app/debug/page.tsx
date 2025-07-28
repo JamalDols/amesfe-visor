@@ -20,8 +20,8 @@ export default function DebugPage() {
         <div className="bg-blue-50 p-4 rounded-lg">
           <h2 className="text-xl font-semibold mb-4">📋 Pasos para solucionar:</h2>
           <ol className="list-decimal list-inside space-y-2">
-            <li>Ejecuta "Probar Conexión" para verificar que Supabase esté accesible</li>
-            <li>Ejecuta "Crear/Verificar Usuario Admin" para asegurar que el usuario existe</li>
+            <li>Ejecuta &quot;Probar Conexión&quot; para verificar que Supabase esté accesible</li>
+            <li>Ejecuta &quot;Crear/Verificar Usuario Admin&quot; para asegurar que el usuario existe</li>
             <li>Ve a tu panel de Supabase → Authentication → Users</li>
             <li>Verifica que el usuario pablo.dols@gmail.com existe</li>
             <li>Si existe, verifica que la contraseña sea correcta</li>

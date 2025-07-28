@@ -130,7 +130,7 @@ export default function HomeAlbumGallery() {
               </button>
             )}
             {albumsWithPhotos.map((album) => (
-              <button key={album.id} onClick={() => scrollToAlbum(album.id)} className="bg-blue-100 text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm">
+              <button key={album.id} onClick={() => scrollToAlbum(album.id)} className=" cursor-pointer bg-blue-100 text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-200 transition-colors text-sm">
                 📁 {album.name} ({album.photos.length})
               </button>
             ))}
@@ -152,10 +152,10 @@ export default function HomeAlbumGallery() {
               {unassignedPhotos.map((photo, index) => (
                 <div key={photo.id} className="relative group cursor-pointer" onClick={() => openLightbox(unassignedPhotos, index)}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={photo.image_url} alt={photo.description || "Foto"} className="w-full h-32 object-cover rounded-lg group-hover:opacity-90 transition-opacity" />
-                  <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity rounded-lg"></div>
+                  <img src={photo.image_url} alt={photo.description || "Foto"} className="w-full h-32 object-cover group-hover:opacity-90 transition-opacity shadow-md" />
+                  <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-20 transition-opacity"></div>
                   {photo.description && (
-                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent text-white text-xs p-2 rounded-b-lg">
+                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/75 to-transparent text-white text-xs p-2">
                       <p className="truncate">{photo.description}</p>
                     </div>
                   )}
@@ -193,7 +193,7 @@ export default function HomeAlbumGallery() {
                     />
                   </svg>
                 </button>
-                <Link href={`/albums/${album.id}`} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                <Link href={`/albums/${album.id}`} className="bg-[#354564] text-white px-4 py-2 rounded-lg hover:bg-[#6DBCB9] transition-colors text-sm">
                   Ver álbum completo
                 </Link>
               </div>
@@ -222,7 +222,7 @@ export default function HomeAlbumGallery() {
             <h3 className="text-xl font-semibold text-gray-600 mb-2">No hay fotos aún</h3>
             <p className="text-gray-500">Ve al panel de administración para subir las primeras fotos</p>
             <div className="mt-4">
-              <a href="/admin" className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+              <a href="/admin" className="inline-block bg-[#354564] text-white px-6 py-3 rounded-lg hover:bg-[#6DBCB9] transition-colors">
                 Ir al panel de administración
               </a>
             </div>

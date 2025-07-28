@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
@@ -137,7 +138,7 @@ export default function LoginPage() {
           {error && <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">{error}</div>}
 
           <div className="mb-6">
-            <button type="submit" className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 font-medium">
+            <button type="submit" className="w-full bg-[#354564] text-white py-3 px-4 rounded-lg hover:bg-[#6DBCB9] transition duration-300 font-medium">
               Iniciar Sesión
             </button>
           </div>
@@ -157,9 +158,9 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <a href="/" className="text-blue-600 hover:text-blue-800 transition duration-300">
+          <Link href="/" className="text-blue-600 hover:text-blue-800 transition duration-300">
             ← Volver a la galería
-          </a>
+          </Link>
         </div>
       </div>
 
@@ -173,7 +174,7 @@ export default function LoginPage() {
               <button onClick={() => setShowDebugPopup(false)} className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600">
                 Cerrar
               </button>
-              <button onClick={() => (window.location.href = "/admin")} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <button onClick={() => (window.location.href = "/admin")} className="flex-1 px-4 py-2 bg-[#354564] text-white rounded-lg hover:bg-[#6DBCB9]">
                 Ir a Admin Ahora
               </button>
             </div>

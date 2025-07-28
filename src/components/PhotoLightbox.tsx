@@ -60,7 +60,7 @@ export default function PhotoLightbox({ photos, currentIndex, isOpen, onClose, o
           <div className="text-lg font-medium">
             {currentIndex + 1} de {photos.length}
           </div>
-          <button onClick={onClose} className="bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 transition-colors" title="Cerrar (Esc)">
+          <button onClick={onClose} className=" cursor-pointer bg-black bg-opacity-50 hover:bg-opacity-75 rounded-full p-2 transition-colors" title="Cerrar (Esc)">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -79,7 +79,7 @@ export default function PhotoLightbox({ photos, currentIndex, isOpen, onClose, o
                 e.stopPropagation();
                 onPrev();
               }}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-3 transition-colors"
+              className="cursor-pointer absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-[#6dbcb9] text-white rounded-full p-3 transition-colors"
               title="Foto anterior (←)"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -95,7 +95,7 @@ export default function PhotoLightbox({ photos, currentIndex, isOpen, onClose, o
                 e.stopPropagation();
                 onNext();
               }}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-opacity-75 text-white rounded-full p-3 transition-colors"
+              className="cursor-pointer absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 hover:bg-[#6dbcb9] text-white rounded-full p-3 transition-colors"
               title="Foto siguiente (→)"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

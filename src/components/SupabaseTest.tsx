@@ -71,7 +71,7 @@ export default function SupabaseTest() {
       <h3 className="text-lg font-semibold text-yellow-800 mb-4">🧪 Pruebas de Supabase</h3>
 
       <div className="space-y-3">
-        <button onClick={testConnection} disabled={loading} className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50">
+        <button onClick={testConnection} disabled={loading} className="bg-[#354564] text-white px-4 py-2 rounded-lg hover:bg-[#6DBCB9] disabled:opacity-50">
           {loading ? "Probando..." : "Probar Conexión"}
         </button>
 

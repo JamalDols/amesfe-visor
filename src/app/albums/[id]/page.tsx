@@ -4,23 +4,24 @@ import AlbumPhotosClient from "@/components/AlbumPhotosClient";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 
 interface AlbumPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function AlbumPage({ params }: AlbumPageProps) {
+  const { id } = await params;
   const supabase = await createServerSupabaseClient();
 
   // Obtener información del álbum
-  const { data: album, error: albumError } = await supabase.from("albums").select("*").eq("id", params.id).single();
+  const { data: album, error: albumError } = await supabase.from("albums").select("*").eq("id", id).single();
 
   if (albumError || !album) {
     notFound();
   }
 
   // Obtener fotos del álbum
-  const { data: photos, error: photosError } = await supabase.from("photos").select("*").eq("album_id", params.id).order("created_at", { ascending: false });
+  const { data: photos, error: photosError } = await supabase.from("photos").select("*").eq("album_id", id).order("created_at", { ascending: false });
 
   if (photosError) {
     console.error("Error fetching album photos:", photosError);
@@ -78,9 +79,10 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
 
 // Generar metadata dinámicamente
 export async function generateMetadata({ params }: AlbumPageProps) {
+  const { id } = await params;
   const supabase = await createServerSupabaseClient();
 
-  const { data: album } = await supabase.from("albums").select("name").eq("id", params.id).single();
+  const { data: album } = await supabase.from("albums").select("name").eq("id", id).single();
 
   return {
     title: album ? `${album.name} - Visor de Fotos` : "Álbum no encontrado",

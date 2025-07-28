@@ -157,7 +157,7 @@ export default function PhotoEditModal({ photo, isOpen, onClose, onSave }: Photo
             <button onClick={onClose} className="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors">
               Cancelar
             </button>
-            <button onClick={handleSave} disabled={loading} className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50">
+            <button onClick={handleSave} disabled={loading} className="px-6 py-2 bg-[#354564] text-white rounded-lg hover:bg-[#6DBCB9] transition-colors disabled:opacity-50">
               {loading ? "Guardando..." : "Guardar cambios"}
             </button>
           </div>
