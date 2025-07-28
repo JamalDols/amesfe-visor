@@ -17,56 +17,6 @@ interface ImageUploaderProps {
 export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
   const [selectedImages, setSelectedImages] = useState<SelectedImage[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [compressing, setCompressing] = useState(false);
-
-  const compressImages = useCallback(async () => {
-    if (selectedImages.length === 0) return;
-
-    setCompressing(true);
-    const compressionOptions = {
-      maxSizeMB: 2, // Aumentamos el tamaño máximo
-      maxWidthOrHeight: 2000, // 2000px como solicitaste
-      useWebWorker: true,
-      fileType: "image/webp" as const, // Forzar WebP
-      initialQuality: 0.9, // Alta calidad
-    };
-
-    try {
-      console.log("🖼️ Comprimiendo", selectedImages.length, "imágenes...");
-
-      const compressedImages = await Promise.all(
-        selectedImages.map(async (img, index) => {
-          if (img.compressed) return img;
-
-          console.log(`📸 Comprimiendo imagen ${index + 1}:`, {
-            original: img.file.name,
-            size: `${(img.file.size / 1024 / 1024).toFixed(2)}MB`,
-            type: img.file.type,
-          });
-
-          const compressedFile = await imageCompression(img.file, compressionOptions);
-
-          console.log(`✅ Imagen ${index + 1} comprimida:`, {
-            newSize: `${(compressedFile.size / 1024 / 1024).toFixed(2)}MB`,
-            type: compressedFile.type,
-            name: compressedFile.name,
-          });
-
-          return {
-            ...img,
-            compressed: compressedFile,
-          };
-        })
-      );
-
-      setSelectedImages(compressedImages);
-      console.log("🎉 Todas las imágenes comprimidas exitosamente");
-    } catch (error) {
-      console.error("❌ Error compressing images:", error);
-    } finally {
-      setCompressing(false);
-    }
-  }, [selectedImages]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const imageFiles = acceptedFiles.filter((file) => file.type.startsWith("image/"));
@@ -95,7 +45,6 @@ export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
   const autoCompressImages = async (imagesToCompress: SelectedImage[]) => {
     if (imagesToCompress.length === 0) return;
 
-    setCompressing(true);
     const compressionOptions = {
       maxSizeMB: 2,
       maxWidthOrHeight: 2000,
@@ -136,8 +85,6 @@ export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
       console.log("🎉 Auto-compresión completada exitosamente");
     } catch (error) {
       console.error("❌ Error en auto-compresión:", error);
-    } finally {
-      setCompressing(false);
     }
   };
 
@@ -247,18 +194,13 @@ export default function ImageUploader({ onUploadSuccess }: ImageUploaderProps) {
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-medium">Imágenes seleccionadas ({selectedImages.length})</h3>
-            <div className="flex gap-2">
-              <button onClick={compressImages} disabled={compressing} className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors disabled:opacity-50">
-                {compressing ? "Comprimiendo..." : "Comprimir a WebP"}
-              </button>
-              <button
-                onClick={handleUpload}
-                disabled={uploading || selectedImages.length === 0}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
-              >
-                {uploading ? "Subiendo..." : "Subir Imágenes"}
-              </button>
-            </div>
+            <button
+              onClick={handleUpload}
+              disabled={uploading || selectedImages.length === 0}
+              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+            >
+              {uploading ? "Subiendo..." : "Subir Imágenes"}
+            </button>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">

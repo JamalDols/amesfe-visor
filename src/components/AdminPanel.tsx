@@ -17,10 +17,21 @@ export default function AdminPanel() {
   const [stats, setStats] = useState({
     totalPhotos: 0,
     totalAlbums: 0,
-    totalStorage: 0,
+    totalStorageBytes: 0, // Cambiar a bytes para mayor precisión
     unassignedPhotos: 0,
   });
   const router = useRouter();
+
+  // Helper para formatear tamaño de archivo
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 B";
+
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`;
+  };
 
   useEffect(() => {
     const loadUser = async () => {
@@ -51,15 +62,51 @@ export default function AdminPanel() {
       // Contar fotos sin álbum
       const { count: unassignedCount } = await supabase.from("photos").select("*", { count: "exact", head: true }).is("album_id", null);
 
-      // Calcular almacenamiento (suma de file_size)
-      const { data: storageData } = await supabase.from("photos").select("file_size");
+      // Calcular almacenamiento de dos formas:
+      // 1. Sumar file_size de la BD (para fotos nuevas)
+      const { data: storageData } = await supabase.from("photos").select("file_size, image_url, id");
 
-      const totalStorage = storageData?.reduce((sum, photo) => sum + (photo.file_size || 0), 0) || 0;
+      console.log("🔍 Datos de almacenamiento obtenidos:", storageData);
+
+      let totalStorageFromDB = 0;
+      let photosWithoutSize = 0;
+      let estimatedSizeFromUrls = 0;
+
+      if (storageData) {
+        for (const photo of storageData) {
+          console.log(`📷 Foto ID ${photo.id}:`, {
+            file_size: photo.file_size,
+            file_size_type: typeof photo.file_size,
+            has_size: photo.file_size && photo.file_size > 0,
+            image_url: photo.image_url,
+          });
+
+          if (photo.file_size && photo.file_size > 0) {
+            console.log(`✅ Sumando ${photo.file_size} bytes de foto ${photo.id}`);
+            totalStorageFromDB += photo.file_size;
+          } else {
+            console.log(`❌ Foto ${photo.id} sin file_size válido, estimando tamaño`);
+            photosWithoutSize++;
+            // Estimar tamaño basado en fotos típicas WebP comprimidas
+            // Promedio: ~200-500 KB por foto optimizada
+            estimatedSizeFromUrls += 350 * 1024; // 350 KB estimado por foto
+          }
+        }
+
+        console.log("🧮 Cálculos finales:", {
+          totalStorageFromDB,
+          estimatedSizeFromUrls,
+          totalBytes: totalStorageFromDB + estimatedSizeFromUrls,
+          totalMB: Math.round((totalStorageFromDB + estimatedSizeFromUrls) / 1024 / 1024),
+        });
+      }
+
+      const totalStorage = totalStorageFromDB + estimatedSizeFromUrls;
 
       setStats({
         totalPhotos: photosCount || 0,
         totalAlbums: albumsCount || 0,
-        totalStorage: Math.round(totalStorage / 1024 / 1024), // MB
+        totalStorageBytes: totalStorage, // Guardar en bytes
         unassignedPhotos: unassignedCount || 0,
       });
 
@@ -67,7 +114,10 @@ export default function AdminPanel() {
         photosCount,
         albumsCount,
         unassignedCount,
+        totalStorageFromDB: Math.round(totalStorageFromDB / 1024 / 1024),
+        estimatedSizeFromUrls: Math.round(estimatedSizeFromUrls / 1024 / 1024),
         totalStorage: Math.round(totalStorage / 1024 / 1024),
+        photosWithoutSize,
       });
     } catch (error) {
       console.error("Error loading stats:", error);
@@ -133,7 +183,8 @@ export default function AdminPanel() {
             </div>
             <div className="bg-purple-50 p-4 rounded-lg">
               <h3 className="text-lg font-medium text-purple-900">Almacenamiento</h3>
-              <p className="text-lg font-bold text-purple-600">{stats.totalStorage} MB</p>
+              <p className="text-2xl font-bold text-purple-600">{formatFileSize(stats.totalStorageBytes)}</p>
+              <p className="text-xs text-purple-700 mt-1">{stats.totalStorageBytes > 0 ? `${stats.totalStorageBytes.toLocaleString()} bytes` : "Sin datos de tamaño"}</p>
             </div>
           </div>
         </section>
