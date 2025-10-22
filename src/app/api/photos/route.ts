@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { query, queryOne } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { deleteFile, getRemotePathFromUrl } from "@/lib/ftp";
 
 // GET /api/photos - Obtener todas las fotos o filtrar
 export async function GET(request: NextRequest) {

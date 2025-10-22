@@ -29,6 +29,7 @@ function getPool() {
 /**
  * Ejecuta una query SQL y devuelve los resultados
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   try {
     const [results] = await getPool().execute(sql, params);
@@ -42,6 +43,7 @@ export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> 
 /**
  * Ejecuta una query y devuelve solo el primer resultado
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function queryOne<T = any>(sql: string, params?: any[]): Promise<T | null> {
   const results = await query<T>(sql, params);
   return results.length > 0 ? results[0] : null;
