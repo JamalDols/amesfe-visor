@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import AdminPanel from "@/components/AdminPanel";
 
+// Marcar esta página como dinámica ya que usa cookies
+export const dynamic = "force-dynamic";
+
 export default async function AdminPage() {
   // Verificar autenticación en el servidor
   const user = await getCurrentUser();
