@@ -1,25 +1,37 @@
 import mysql from "mysql2/promise";
 
-// Configuración de la conexión MySQL
-const dbConfig = {
-  host: process.env.MYSQL_HOST || "127.0.0.1",
-  user: process.env.MYSQL_USER || "myamesfede14",
-  password: process.env.MYSQL_PASSWORD || "hIq1ELCA",
-  database: process.env.MYSQL_DATABASE || "amesfedev",
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
-};
+// Función para obtener la configuración con las variables de entorno actualizadas
+function getDbConfig() {
+  const config = {
+    host: process.env.MYSQL_HOST || "mysql.amesfe.org",
+    user: process.env.MYSQL_USER || "myamesfede14",
+    password: process.env.MYSQL_PASSWORD || "hIq1ELCA",
+    database: process.env.MYSQL_DATABASE || "amesfefotos",
+    waitForConnections: true,
+    connectionLimit: 10,
+    queueLimit: 0,
+  };
 
-// Pool de conexiones reutilizable
-const pool = mysql.createPool(dbConfig);
+  console.log("🔗 MySQL Config:", { host: config.host, user: config.user, database: config.database });
+  return config;
+}
+
+// Pool de conexiones reutilizable (se crea de forma lazy)
+let pool: mysql.Pool | null = null;
+
+function getPool() {
+  if (!pool) {
+    pool = mysql.createPool(getDbConfig());
+  }
+  return pool;
+}
 
 /**
  * Ejecuta una query SQL y devuelve los resultados
  */
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   try {
-    const [results] = await pool.execute(sql, params);
+    const [results] = await getPool().execute(sql, params);
     return results as T[];
   } catch (error) {
     console.error("Database query error:", error);
@@ -39,7 +51,9 @@ export async function queryOne<T = any>(sql: string, params?: any[]): Promise<T 
  * Cierra el pool de conexiones (útil para testing)
  */
 export async function closePool() {
-  await pool.end();
+  if (pool) {
+    await pool.end();
+  }
 }
 
-export default pool;
+export default getPool();

@@ -1,18 +1,20 @@
 import { Client } from "basic-ftp";
 import { Readable } from "stream";
 
-// Configuración FTP
-const ftpConfig = {
-  host: process.env.FTP_HOST,
-  user: process.env.FTP_USER,
-  password: process.env.FTP_PASSWORD,
-  secure: false,
-};
-
 /**
  * Crea un cliente FTP conectado
  */
 export async function createFTPClient(): Promise<Client> {
+  // Configuración FTP (leer aquí para asegurar que las variables están cargadas)
+  const ftpConfig = {
+    host: process.env.FTP_HOST || "ftp.amesfe.org",
+    user: process.env.FTP_USER || "amesfede19",
+    password: process.env.FTP_PASSWORD,
+    secure: false,
+  };
+
+  console.log("🔗 Intentando conectar a FTP:", ftpConfig.host);
+
   const client = new Client();
   client.ftp.verbose = process.env.NODE_ENV === "development";
 
