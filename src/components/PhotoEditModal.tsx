@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { apiClient } from "@/lib/api-client";
 import { Photo, Album } from "@/types";
 
 interface PhotoEditModalProps {
@@ -30,14 +30,8 @@ export default function PhotoEditModal({ photo, isOpen, onClose, onSave }: Photo
 
   const fetchAlbums = async () => {
     try {
-      const { data, error } = await supabase.from("albums").select("*").order("name");
-
-      if (error) {
-        console.error("Error fetching albums:", error);
-        return;
-      }
-
-      setAlbums(data || []);
+      const data = await apiClient.getAlbums();
+      setAlbums(data);
     } catch (error) {
       console.error("Error:", error);
     }
@@ -46,19 +40,11 @@ export default function PhotoEditModal({ photo, isOpen, onClose, onSave }: Photo
   const handleSave = async () => {
     setLoading(true);
     try {
-      const updates: Partial<Photo> = {
+      await apiClient.updatePhoto(photo.id, {
         description: description.trim() || undefined,
         year: year ? parseInt(year) : undefined,
         album_id: albumId || undefined,
-      };
-
-      const { error } = await supabase.from("photos").update(updates).eq("id", photo.id);
-
-      if (error) {
-        console.error("Error updating photo:", error);
-        alert("Error al actualizar la foto");
-        return;
-      }
+      });
 
       console.log("✅ Foto actualizada exitosamente");
       onSave();

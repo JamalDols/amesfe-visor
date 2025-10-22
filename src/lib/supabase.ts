@@ -1,35 +1,67 @@
-import { createBrowserClient } from "@supabase/ssr";
+// Este archivo se mantiene por compatibilidad pero ya no se usa
+// La aplicación ahora usa MySQL + FTP en lugar de Supabase
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Objeto mock de Supabase para evitar errores en componentes legacy
+export const supabase = {
+  from: () => ({
+    select: () => Promise.resolve({ data: [], error: null }),
+    insert: () => Promise.resolve({ data: null, error: null }),
+    update: () => Promise.resolve({ data: null, error: null }),
+    delete: () => Promise.resolve({ data: null, error: null }),
+  }),
+  auth: {
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+    signOut: () => Promise.resolve({ error: null }),
+  },
+  storage: {
+    from: () => ({
+      upload: () => Promise.resolve({ data: null, error: null }),
+      getPublicUrl: () => ({ data: { publicUrl: "" } }),
+      remove: () => Promise.resolve({ data: null, error: null }),
+    }),
+  },
+};
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables");
-}
-
-// Cliente para el browser que maneja cookies automáticamente
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
-
-// Helper function to check if user is authenticated
+// Helper functions adaptadas al nuevo sistema
 export const isAuthenticated = async () => {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return !!session;
+  try {
+    const response = await fetch("/api/auth/me");
+    const data = await response.json();
+    return data.authenticated || false;
+  } catch {
+    return false;
+  }
 };
 
-// Helper function to get current user
 export const getCurrentUser = async () => {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  return user;
+  try {
+    console.log("🔍 getCurrentUser: Fetching /api/auth/me");
+    const response = await fetch("/api/auth/me", {
+      credentials: "include", // Asegurar que las cookies se envíen
+    });
+
+    console.log("📥 Response status:", response.status);
+
+    if (!response.ok) {
+      console.log("❌ Response not OK, returning null");
+      return null;
+    }
+
+    const data = await response.json();
+    console.log("📊 Response data:", data);
+
+    return data.user || null;
+  } catch (error) {
+    console.error("❌ Error in getCurrentUser:", error);
+    return null;
+  }
 };
 
-// Helper function to sign out
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) {
+  try {
+    await fetch("/api/auth/logout", { method: "POST" });
+  } catch (error) {
     console.error("Error signing out:", error);
     throw error;
   }

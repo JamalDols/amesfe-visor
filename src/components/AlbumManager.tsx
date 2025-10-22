@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { apiClient } from "@/lib/api-client";
 import { Album } from "@/types";
 
 interface AlbumManagerProps {
@@ -21,14 +21,8 @@ export default function AlbumManager({ onAlbumCreated }: AlbumManagerProps) {
   const fetchAlbums = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from("albums").select("*").order("name");
-
-      if (error) {
-        console.error("Error fetching albums:", error);
-        return;
-      }
-
-      setAlbums(data || []);
+      const data = await apiClient.getAlbums();
+      setAlbums(data);
     } catch (error) {
       console.error("Error:", error);
     } finally {
@@ -44,19 +38,9 @@ export default function AlbumManager({ onAlbumCreated }: AlbumManagerProps) {
 
     setCreating(true);
     try {
-      const { data, error } = await supabase
-        .from("albums")
-        .insert({
-          name: newAlbumName.trim(),
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Error creating album:", error);
-        alert("Error al crear el álbum");
-        return;
-      }
+      const data = await apiClient.createAlbum({
+        name: newAlbumName.trim(),
+      });
 
       console.log("✅ Álbum creado:", data);
       setAlbums([...albums, data]);
@@ -79,22 +63,7 @@ export default function AlbumManager({ onAlbumCreated }: AlbumManagerProps) {
     }
 
     try {
-      // Primero, quitar el album_id de todas las fotos que pertenecen a este álbum
-      const { error: photosError } = await supabase.from("photos").update({ album_id: null }).eq("album_id", albumId);
-
-      if (photosError) {
-        console.error("Error updating photos:", photosError);
-      }
-
-      // Luego, eliminar el álbum
-      const { error } = await supabase.from("albums").delete().eq("id", albumId);
-
-      if (error) {
-        console.error("Error deleting album:", error);
-        alert("Error al eliminar el álbum");
-        return;
-      }
-
+      await apiClient.deleteAlbum(albumId);
       setAlbums(albums.filter((album) => album.id !== albumId));
       console.log("✅ Álbum eliminado");
     } catch (error) {

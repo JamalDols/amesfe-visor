@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { apiClient } from "@/lib/api-client";
 import { Photo, Album } from "@/types";
 import PhotoLightbox from "./PhotoLightbox";
 
@@ -26,23 +26,19 @@ export default function HomeAlbumGallery() {
       setLoading(true);
 
       // Obtener álbumes
-      const { data: albums, error: albumsError } = await supabase.from("albums").select("*").order("created_at", { ascending: false });
-
-      if (albumsError) throw albumsError;
+      const albums = await apiClient.getAlbums();
 
       // Obtener fotos sin álbum
-      const { data: unassigned, error: unassignedError } = await supabase.from("photos").select("*").is("album_id", null).order("created_at", { ascending: false });
-
-      if (unassignedError) throw unassignedError;
-      setUnassignedPhotos(unassigned || []);
+      const unassigned = await apiClient.getPhotos({ unassigned: true });
+      setUnassignedPhotos(unassigned);
 
       // Obtener fotos para cada álbum
       const albumsWithPhotosData: AlbumWithPhotos[] = [];
 
-      for (const album of albums || []) {
-        const { data: photos, error: photosError } = await supabase.from("photos").select("*").eq("album_id", album.id).order("created_at", { ascending: false });
+      for (const album of albums) {
+        const photos = await apiClient.getPhotos({ album_id: album.id });
 
-        if (!photosError && photos && photos.length > 0) {
+        if (photos.length > 0) {
           albumsWithPhotosData.push({
             ...album,
             photos: photos,

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
+import { apiClient } from "@/lib/api-client";
 import { Photo } from "@/types";
 import PhotoEditModal from "./PhotoEditModal";
 
@@ -18,7 +18,7 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [loading, setLoading] = useState(false);
   const [editingPhoto, setEditingPhoto] = useState<Photo | null>(null);
-  
+
   // Estados para selección múltiple
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -30,33 +30,11 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
       setLoading(true);
       console.log("🔄 Buscando fotos en la base de datos...");
 
-      let query = supabase
-        .from("photos")
-        .select(
-          `
-          *,
-          albums (
-            id,
-            name
-          )
-        `
-        )
-        .order("created_at", { ascending: false });
+      // Obtener fotos según el filtro
+      const photos = showUnassigned ? await apiClient.getPhotos({ unassigned: true }) : await apiClient.getPhotos();
 
-      // Si queremos solo fotos sin álbum
-      if (showUnassigned) {
-        query = query.is("album_id", null);
-      }
-
-      const { data: photos, error } = await query;
-
-      if (error) {
-        console.error("❌ Error al buscar fotos:", error);
-        throw error;
-      }
-
-      console.log(`✅ ${photos?.length || 0} fotos encontradas`);
-      setPhotos(photos || []);
+      console.log(`✅ ${photos.length} fotos encontradas`);
+      setPhotos(photos);
     } catch (error) {
       console.error("Error fetching photos:", error);
     } finally {
@@ -67,17 +45,8 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
   // Función para cargar álbumes
   const fetchAlbums = useCallback(async () => {
     try {
-      const { data: albums, error } = await supabase
-        .from("albums")
-        .select("id, name")
-        .order("name", { ascending: true });
-
-      if (error) {
-        console.error("Error al cargar álbumes:", error);
-        return;
-      }
-
-      setAlbums(albums || []);
+      const albums = await apiClient.getAlbums();
+      setAlbums(albums);
     } catch (error) {
       console.error("Error fetching albums:", error);
     }
@@ -97,7 +66,7 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
   };
 
   const selectAllPhotos = () => {
-    setSelectedPhotos(new Set(photos.map(photo => photo.id)));
+    setSelectedPhotos(new Set(photos.map((photo) => photo.id)));
   };
 
   const clearSelection = () => {
@@ -118,25 +87,17 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
 
     try {
       const photoIds = Array.from(selectedPhotos);
-      
-      const { error } = await supabase
-        .from("photos")
-        .update({ album_id: albumId })
-        .in("id", photoIds);
 
-      if (error) {
-        console.error("Error moviendo fotos:", error);
-        alert("Error al mover las fotos");
-        return;
-      }
+      // Actualizar cada foto con el nuevo album_id
+      await apiClient.updatePhotosAlbum(photoIds, albumId);
 
       console.log(`✅ ${photoIds.length} fotos movidas al álbum`);
-      
+
       // Refrescar datos
       await fetchPhotos();
       clearSelection();
       setShowMoveModal(false);
-      
+
       alert(`${photoIds.length} fotos movidas correctamente`);
     } catch (error) {
       console.error("Error moviendo fotos:", error);
@@ -149,7 +110,7 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
     fetchAlbums();
   }, [fetchPhotos, fetchAlbums, refreshTrigger]);
 
-  async function deletePhoto(photoId: string, imageUrl: string) {
+  async function deletePhoto(photoId: string) {
     if (!confirm("¿Estás seguro de que quieres eliminar esta foto?")) {
       return;
     }
@@ -157,24 +118,8 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
     try {
       console.log("🗑️ Eliminando foto:", photoId);
 
-      // Extraer el path del archivo de la URL
-      const urlParts = imageUrl.split("/");
-      const fileName = urlParts[urlParts.length - 1];
-
-      // Eliminar el archivo del storage
-      const { error: storageError } = await supabase.storage.from("photos").remove([fileName]);
-
-      if (storageError) {
-        console.error("Error eliminando archivo del storage:", storageError);
-      }
-
-      // Eliminar registro de la base de datos
-      const { error: dbError } = await supabase.from("photos").delete().eq("id", photoId);
-
-      if (dbError) {
-        console.error("Error eliminando registro de la DB:", dbError);
-        throw dbError;
-      }
+      // Eliminar usando la API (que borra tanto de FTP como de DB)
+      await apiClient.deletePhoto(photoId);
 
       console.log("✅ Foto eliminada correctamente");
       fetchPhotos();
@@ -206,20 +151,13 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
           {showUnassigned ? "Fotos sin álbum" : "Fotos Subidas"} ({photos.length})
         </h2>
         <div className="flex gap-3">
-          <button 
-            onClick={toggleSelectionMode} 
-            className={`px-4 py-2 rounded-lg transition-colors ${
-              isSelectionMode 
-                ? 'bg-red-500 text-white hover:bg-red-600' 
-                : 'bg-blue-500 text-white hover:bg-blue-600'
-            }`}
+          <button
+            onClick={toggleSelectionMode}
+            className={`px-4 py-2 rounded-lg transition-colors ${isSelectionMode ? "bg-red-500 text-white hover:bg-red-600" : "bg-blue-500 text-white hover:bg-blue-600"}`}
           >
-            {isSelectionMode ? 'Cancelar Selección' : 'Seleccionar Fotos'}
+            {isSelectionMode ? "Cancelar Selección" : "Seleccionar Fotos"}
           </button>
-          <button 
-            onClick={fetchPhotos} 
-            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors"
-          >
+          <button onClick={fetchPhotos} className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
             Actualizar
           </button>
         </div>
@@ -230,28 +168,17 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
         <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <span className="text-blue-800 font-medium">
-                {selectedPhotos.size} foto(s) seleccionada(s)
-              </span>
-              <button
-                onClick={selectAllPhotos}
-                className="text-blue-600 hover:text-blue-800 underline text-sm"
-              >
+              <span className="text-blue-800 font-medium">{selectedPhotos.size} foto(s) seleccionada(s)</span>
+              <button onClick={selectAllPhotos} className="text-blue-600 hover:text-blue-800 underline text-sm">
                 Seleccionar todas
               </button>
-              <button
-                onClick={clearSelection}
-                className="text-blue-600 hover:text-blue-800 underline text-sm"
-              >
+              <button onClick={clearSelection} className="text-blue-600 hover:text-blue-800 underline text-sm">
                 Limpiar selección
               </button>
             </div>
-            
+
             {selectedPhotos.size > 0 && (
-              <button
-                onClick={() => setShowMoveModal(true)}
-                className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors"
-              >
+              <button onClick={() => setShowMoveModal(true)} className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors">
                 Mover a Álbum
               </button>
             )}
@@ -279,11 +206,9 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
               src={photo.image_url}
               alt={photo.description || "Foto"}
               className={`w-full h-32 object-cover rounded-lg transition-all ${
-                isSelectionMode 
-                  ? 'cursor-pointer hover:opacity-80' + (selectedPhotos.has(photo.id) ? ' ring-4 ring-blue-500' : '')
-                  : ''
+                isSelectionMode ? "cursor-pointer hover:opacity-80" + (selectedPhotos.has(photo.id) ? " ring-4 ring-blue-500" : "") : ""
               }`}
-              onClick={() => isSelectionMode ? togglePhotoSelection(photo.id) : undefined}
+              onClick={() => (isSelectionMode ? togglePhotoSelection(photo.id) : undefined)}
               onError={(e) => {
                 console.error("Error cargando imagen:", photo.image_url);
                 (e.target as HTMLImageElement).style.backgroundColor = "#f3f4f6";
@@ -308,7 +233,7 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
                       />
                     </svg>
                   </button>
-                  <button onClick={() => deletePhoto(photo.id, photo.image_url)} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600" title="Eliminar foto">
+                  <button onClick={() => deletePhoto(photo.id)} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600" title="Eliminar foto">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
                         strokeLinecap="round"
@@ -349,37 +274,25 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
       {showMoveModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-4">
-              Mover {selectedPhotos.size} foto(s) a álbum
-            </h3>
-            
+            <h3 className="text-lg font-semibold mb-4">Mover {selectedPhotos.size} foto(s) a álbum</h3>
+
             <div className="space-y-3 mb-6">
               {/* Opción para quitar de álbum */}
-              <button
-                onClick={() => movePhotosToAlbum(null)}
-                className="w-full text-left p-3 border rounded-lg hover:bg-gray-50 transition-colors"
-              >
+              <button onClick={() => movePhotosToAlbum(null)} className="w-full text-left p-3 border rounded-lg hover:bg-gray-50 transition-colors">
                 <div className="font-medium">Sin álbum</div>
                 <div className="text-sm text-gray-500">Quitar de cualquier álbum</div>
               </button>
-              
+
               {/* Lista de álbumes */}
               {albums.map((album) => (
-                <button
-                  key={album.id}
-                  onClick={() => movePhotosToAlbum(album.id)}
-                  className="w-full text-left p-3 border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors"
-                >
+                <button key={album.id} onClick={() => movePhotosToAlbum(album.id)} className="w-full text-left p-3 border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors">
                   <div className="font-medium">{album.name}</div>
                 </button>
               ))}
             </div>
-            
+
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowMoveModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-              >
+              <button onClick={() => setShowMoveModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
                 Cancelar
               </button>
             </div>

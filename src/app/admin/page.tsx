@@ -1,16 +1,16 @@
 import { redirect } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { getCurrentUser } from "@/lib/auth";
 import AdminPanel from "@/components/AdminPanel";
 
 export default async function AdminPage() {
-  const supabase = await createServerSupabaseClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
+  // Verificar autenticación en el servidor
+  const user = await getCurrentUser();
 
-  if (!session) {
+  if (!user) {
+    console.log("⚠️ AdminPage: No user found, redirecting to login");
     redirect("/login");
   }
 
+  console.log("✅ AdminPage: User authenticated:", user.email);
   return <AdminPanel />;
 }

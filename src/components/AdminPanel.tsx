@@ -2,25 +2,25 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getCurrentUser, signOut, supabase } from "@/lib/supabase";
+import { getCurrentUser, signOut } from "@/lib/supabase";
+import { apiClient } from "@/lib/api-client";
 import ImageUploader from "./ImageUploader";
 import PhotoGallery from "./PhotoGallery";
 import AlbumManager from "./AlbumManager";
 
-import { User } from "@supabase/supabase-js";
-
 export default function AdminPanel() {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<{ email: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState<"upload" | "photos" | "unassigned" | "albums">("upload");
   const [stats, setStats] = useState({
     totalPhotos: 0,
     totalAlbums: 0,
-    totalStorageBytes: 0, // Cambiar a bytes para mayor precisión
+    totalStorageBytes: 0,
     unassignedPhotos: 0,
   });
   const router = useRouter();
+  const [hasCheckedAuth, setHasCheckedAuth] = useState(false);
 
   // Helper para formatear tamaño de archivo
   const formatFileSize = (bytes: number): string => {
@@ -34,14 +34,28 @@ export default function AdminPanel() {
   };
 
   useEffect(() => {
+    // Evitar múltiples ejecuciones
+    if (hasCheckedAuth) return;
+
     const loadUser = async () => {
       try {
+        console.log("🔐 AdminPanel: Checking authentication...");
         const currentUser = await getCurrentUser();
+
+        if (!currentUser) {
+          console.log("❌ No user found, redirecting to login");
+          router.push("/login");
+          return;
+        }
+
+        console.log("✅ User authenticated:", currentUser.email);
         setUser(currentUser);
+        setHasCheckedAuth(true);
+
         // Cargar estadísticas al mismo tiempo
         await loadStats();
       } catch (error) {
-        console.error("Error loading user:", error);
+        console.error("❌ Error loading user:", error);
         router.push("/login");
       } finally {
         setLoading(false);
@@ -49,74 +63,46 @@ export default function AdminPanel() {
     };
 
     loadUser();
-  }, [router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Solo ejecutar una vez al montar
 
   const loadStats = async () => {
     try {
-      // Contar fotos
-      const { count: photosCount } = await supabase.from("photos").select("*", { count: "exact", head: true });
+      // Obtener todas las fotos con sus datos
+      const photos = await apiClient.getPhotos();
 
-      // Contar álbumes
-      const { count: albumsCount } = await supabase.from("albums").select("*", { count: "exact", head: true });
+      // Obtener todos los álbumes
+      const albums = await apiClient.getAlbums();
 
       // Contar fotos sin álbum
-      const { count: unassignedCount } = await supabase.from("photos").select("*", { count: "exact", head: true }).is("album_id", null);
+      const unassignedPhotos = photos.filter((p) => !p.album_id);
 
-      // Calcular almacenamiento de dos formas:
-      // 1. Sumar file_size de la BD (para fotos nuevas)
-      const { data: storageData } = await supabase.from("photos").select("file_size, image_url, id");
-
-      console.log("🔍 Datos de almacenamiento obtenidos:", storageData);
-
-      let totalStorageFromDB = 0;
+      // Calcular almacenamiento total
+      let totalStorageBytes = 0;
       let photosWithoutSize = 0;
-      let estimatedSizeFromUrls = 0;
 
-      if (storageData) {
-        for (const photo of storageData) {
-          console.log(`📷 Foto ID ${photo.id}:`, {
-            file_size: photo.file_size,
-            file_size_type: typeof photo.file_size,
-            has_size: photo.file_size && photo.file_size > 0,
-            image_url: photo.image_url,
-          });
-
-          if (photo.file_size && photo.file_size > 0) {
-            console.log(`✅ Sumando ${photo.file_size} bytes de foto ${photo.id}`);
-            totalStorageFromDB += photo.file_size;
-          } else {
-            console.log(`❌ Foto ${photo.id} sin file_size válido, estimando tamaño`);
-            photosWithoutSize++;
-            // Estimar tamaño basado en fotos típicas WebP comprimidas
-            // Promedio: ~200-500 KB por foto optimizada
-            estimatedSizeFromUrls += 350 * 1024; // 350 KB estimado por foto
-          }
+      for (const photo of photos) {
+        if (photo.file_size && photo.file_size > 0) {
+          totalStorageBytes += photo.file_size;
+        } else {
+          photosWithoutSize++;
+          // Estimar 350 KB por foto sin file_size
+          totalStorageBytes += 350 * 1024;
         }
-
-        console.log("🧮 Cálculos finales:", {
-          totalStorageFromDB,
-          estimatedSizeFromUrls,
-          totalBytes: totalStorageFromDB + estimatedSizeFromUrls,
-          totalMB: Math.round((totalStorageFromDB + estimatedSizeFromUrls) / 1024 / 1024),
-        });
       }
 
-      const totalStorage = totalStorageFromDB + estimatedSizeFromUrls;
-
       setStats({
-        totalPhotos: photosCount || 0,
-        totalAlbums: albumsCount || 0,
-        totalStorageBytes: totalStorage, // Guardar en bytes
-        unassignedPhotos: unassignedCount || 0,
+        totalPhotos: photos.length,
+        totalAlbums: albums.length,
+        totalStorageBytes,
+        unassignedPhotos: unassignedPhotos.length,
       });
 
       console.log("📊 Stats cargadas:", {
-        photosCount,
-        albumsCount,
-        unassignedCount,
-        totalStorageFromDB: Math.round(totalStorageFromDB / 1024 / 1024),
-        estimatedSizeFromUrls: Math.round(estimatedSizeFromUrls / 1024 / 1024),
-        totalStorage: Math.round(totalStorage / 1024 / 1024),
+        photosCount: photos.length,
+        albumsCount: albums.length,
+        unassignedCount: unassignedPhotos.length,
+        totalStorageMB: Math.round(totalStorageBytes / 1024 / 1024),
         photosWithoutSize,
       });
     } catch (error) {

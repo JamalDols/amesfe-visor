@@ -1,30 +1,62 @@
-import { notFound } from "next/navigation";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import AlbumPhotosClient from "@/components/AlbumPhotosClient";
-import { createServerSupabaseClient } from "@/lib/supabase-server";
+import { apiClient } from "@/lib/api-client";
+import { Album, Photo } from "@/types";
 
-interface AlbumPageProps {
-  params: Promise<{
-    id: string;
-  }>;
-}
+export default function AlbumPage() {
+  const params = useParams();
+  const id = params.id as string;
 
-export default async function AlbumPage({ params }: AlbumPageProps) {
-  const { id } = await params;
-  const supabase = await createServerSupabaseClient();
+  const [album, setAlbum] = useState<Album | null>(null);
+  const [photos, setPhotos] = useState<Photo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  // Obtener información del álbum
-  const { data: album, error: albumError } = await supabase.from("albums").select("*").eq("id", id).single();
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Obtener álbum
+        const albumData = await apiClient.getAlbum(id);
+        setAlbum(albumData);
 
-  if (albumError || !album) {
-    notFound();
+        // Obtener fotos del álbum
+        const photosData = await apiClient.getPhotos({ album_id: id });
+        setPhotos(photosData);
+      } catch (err) {
+        console.error("Error fetching album:", err);
+        setError(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Cargando...</div>
+      </div>
+    );
   }
 
-  // Obtener fotos del álbum
-  const { data: photos, error: photosError } = await supabase.from("photos").select("*").eq("album_id", id).order("created_at", { ascending: false });
-
-  if (photosError) {
-    console.error("Error fetching album photos:", photosError);
+  if (error || !album) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Álbum no encontrado</h1>
+          <Link href="/" className="text-blue-600 hover:text-blue-700">
+            Volver a inicio
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -58,11 +90,11 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
           <div className="mb-6">
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">📁 {album.name}</h2>
             <p className="text-gray-600">
-              {photos?.length || 0} foto{photos?.length !== 1 ? "s" : ""} en este álbum
+              {photos.length} foto{photos.length !== 1 ? "s" : ""} en este álbum
             </p>
           </div>
 
-          {photos && photos.length > 0 ? (
+          {photos.length > 0 ? (
             <AlbumPhotosClient photos={photos} />
           ) : (
             <div className="text-center py-16">
@@ -75,17 +107,4 @@ export default async function AlbumPage({ params }: AlbumPageProps) {
       </div>
     </div>
   );
-}
-
-// Generar metadata dinámicamente
-export async function generateMetadata({ params }: AlbumPageProps) {
-  const { id } = await params;
-  const supabase = await createServerSupabaseClient();
-
-  const { data: album } = await supabase.from("albums").select("name").eq("id", id).single();
-
-  return {
-    title: album ? `${album.name} - Visor de Fotos` : "Álbum no encontrado",
-    description: album ? `Fotos del álbum ${album.name}` : "Álbum no encontrado",
-  };
 }

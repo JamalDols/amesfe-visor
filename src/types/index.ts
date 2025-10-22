@@ -1,15 +1,15 @@
 export interface Photo {
   id: string;
   image_url: string;
-  description?: string;
-  year?: number;
-  album_id?: string;
-  file_size?: number;
+  description?: string | null;
+  year?: number | null;
+  album_id?: string | null;
+  file_size?: number | null;
   created_at: string;
   albums?: {
     id: string;
     name: string;
-  };
+  } | null;
 }
 
 export interface Album {
