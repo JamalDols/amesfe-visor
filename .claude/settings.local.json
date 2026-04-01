@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(node scripts/generate-csv.js)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(node -e \":*)"
     ]
   }
 }

@@ -42,9 +42,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { id } = await params;
 
     const body = await request.json();
-    const { description, year, album_id } = body;
 
-    await query("UPDATE photos SET description = ?, year = ?, album_id = ? WHERE id = ?", [description || null, year || null, album_id || null, id]);
+    // Construir el UPDATE solo con los campos presentes en el body
+    // para evitar sobreescribir campos no enviados con null
+    const fields: string[] = [];
+    const values: unknown[] = [];
+
+    if ("description" in body) { fields.push("description = ?"); values.push(body.description || null); }
+    if ("year" in body)        { fields.push("year = ?");        values.push(body.year || null); }
+    if ("album_id" in body)    { fields.push("album_id = ?");    values.push(body.album_id || null); }
+
+    if (fields.length === 0) {
+      return NextResponse.json({ error: "No hay campos para actualizar" }, { status: 400 });
+    }
+
+    values.push(id);
+    await query(`UPDATE photos SET ${fields.join(", ")} WHERE id = ?`, values);
 
     const photo = await queryOne(
       `SELECT p.*, a.name as album_name 

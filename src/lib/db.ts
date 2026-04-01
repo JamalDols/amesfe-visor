@@ -1,34 +1,41 @@
 import mysql from "mysql2/promise";
 
-// Función para obtener la configuración con las variables de entorno actualizadas
-function getDbConfig() {
-  const config = {
-    host: process.env.MYSQL_HOST || "mysql.amesfe.org",
-    user: process.env.MYSQL_USER || "myamesfede14",
+// En desarrollo Next.js hace hot-reload y recrea módulos, lo que acumula pools
+// huérfanos. Guardamos el pool en globalThis para reutilizarlo entre recargas.
+declare global {
+  // eslint-disable-next-line no-var
+  var __mysqlPool: mysql.Pool | undefined;
+}
+
+function createPool(): mysql.Pool {
+  return mysql.createPool({
+    host:     process.env.MYSQL_HOST     || "mysql.amesfe.org",
+    user:     process.env.MYSQL_USER     || "myamesfede14",
     password: process.env.MYSQL_PASSWORD || "hIq1ELCA",
     database: process.env.MYSQL_DATABASE || "amesfefotos",
     waitForConnections: true,
-    connectionLimit: 10,
+    connectionLimit: 3,   // conservador para hosting compartido (límite 20)
     queueLimit: 0,
-  };
-
-  console.log("🔗 MySQL Config:", { host: config.host, user: config.user, database: config.database });
-  return config;
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 10000,
+  });
 }
 
-// Pool de conexiones reutilizable (se crea de forma lazy)
-let pool: mysql.Pool | null = null;
-
-function getPool() {
-  if (!pool) {
-    pool = mysql.createPool(getDbConfig());
+function getPool(): mysql.Pool {
+  if (process.env.NODE_ENV === "development") {
+    // Reutilizar el pool entre hot-reloads en desarrollo
+    if (!globalThis.__mysqlPool) {
+      globalThis.__mysqlPool = createPool();
+    }
+    return globalThis.__mysqlPool;
   }
-  return pool;
+  // En producción el módulo solo se carga una vez, un pool estático es suficiente
+  if (!globalThis.__mysqlPool) {
+    globalThis.__mysqlPool = createPool();
+  }
+  return globalThis.__mysqlPool;
 }
 
-/**
- * Ejecuta una query SQL y devuelve los resultados
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
   try {
@@ -40,22 +47,17 @@ export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> 
   }
 }
 
-/**
- * Ejecuta una query y devuelve solo el primer resultado
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function queryOne<T = any>(sql: string, params?: any[]): Promise<T | null> {
   const results = await query<T>(sql, params);
   return results.length > 0 ? results[0] : null;
 }
 
-/**
- * Cierra el pool de conexiones (útil para testing)
- */
 export async function closePool() {
-  if (pool) {
-    await pool.end();
+  if (globalThis.__mysqlPool) {
+    await globalThis.__mysqlPool.end();
+    globalThis.__mysqlPool = undefined;
   }
 }
 
-export default getPool();
+export default getPool;

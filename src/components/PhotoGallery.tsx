@@ -345,10 +345,16 @@ export default function PhotoGallery({ refreshTrigger, showUnassigned = false }:
                 </div>
               </div>
 
-              {/* Metadatos */}
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent text-white text-xs px-2 py-1.5 pointer-events-none">
-                {photo.year && <p className="font-medium">{photo.year}</p>}
-                {photo.description && <p className="truncate opacity-90">{photo.description}</p>}
+              {/* Metadatos — siempre visible */}
+              <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/75 to-transparent text-white text-xs px-2 py-2 pointer-events-none">
+                {photo.year
+                  ? <p className="font-semibold leading-tight">{photo.year}</p>
+                  : <p className="opacity-40 italic leading-tight">Sin año</p>
+                }
+                {photo.description
+                  ? <p className="truncate opacity-90 leading-tight">{photo.description}</p>
+                  : <p className="opacity-40 italic leading-tight">Sin descripción</p>
+                }
               </div>
             </div>
           );
