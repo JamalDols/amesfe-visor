@@ -7,12 +7,14 @@ import { apiClient } from "@/lib/api-client";
 import ImageUploader from "./ImageUploader";
 import PhotoGallery from "./PhotoGallery";
 import AlbumManager from "./AlbumManager";
+import PhotoImporter from "./PhotoImporter";
+import DatabaseBackup from "./DatabaseBackup";
 
 export default function AdminPanel() {
   const [user, setUser] = useState<{ email: string } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [activeTab, setActiveTab] = useState<"upload" | "photos" | "unassigned" | "albums">("upload");
+  const [activeTab, setActiveTab] = useState<"upload" | "photos" | "unassigned" | "albums" | "import" | "backup">("upload");
   const [stats, setStats] = useState({
     totalPhotos: 0,
     totalAlbums: 0,
@@ -210,6 +212,22 @@ export default function AdminPanel() {
             >
               📁 Gestionar Álbumes
             </button>
+            <button
+              onClick={() => setActiveTab("import")}
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "import" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              📥 Importar Fotos
+            </button>
+            <button
+              onClick={() => setActiveTab("backup")}
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === "backup" ? "border-blue-500 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              💾 Backup BD
+            </button>
           </nav>
         </div>
 
@@ -238,6 +256,20 @@ export default function AdminPanel() {
             <section className="bg-white rounded-lg shadow p-6">
               <h2 className="text-2xl font-semibold text-gray-900 mb-6">Gestión de Álbumes</h2>
               <AlbumManager onAlbumCreated={handleUploadSuccess} />
+            </section>
+          )}
+
+          {activeTab === "import" && (
+            <section className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Importar Fotos desde CSV</h2>
+              <PhotoImporter onImportSuccess={handleUploadSuccess} />
+            </section>
+          )}
+
+          {activeTab === "backup" && (
+            <section className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-2xl font-semibold text-gray-900 mb-6">Copia de Seguridad</h2>
+              <DatabaseBackup onImportSuccess={handleUploadSuccess} />
             </section>
           )}
         </div>

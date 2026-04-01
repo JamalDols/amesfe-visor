@@ -29,32 +29,36 @@ export async function createFTPClient(): Promise<Client> {
 }
 
 /**
- * Sube un archivo al FTP desde un buffer
+ * Sube un archivo al FTP desde un buffer (abre y cierra su propia conexión)
  */
 export async function uploadFile(buffer: Buffer, remotePath: string): Promise<string> {
   const client = await createFTPClient();
-
   try {
-    // Crear directorios si no existen
+    return await uploadFileWithClient(client, buffer, remotePath);
+  } finally {
+    client.close();
+  }
+}
+
+/**
+ * Sube un archivo usando una conexión FTP ya abierta.
+ * Usar cuando se suben varios archivos seguidos para no abrir una conexión por archivo.
+ */
+export async function uploadFileWithClient(client: Client, buffer: Buffer, remotePath: string): Promise<string> {
+  try {
     const remoteDir = remotePath.substring(0, remotePath.lastIndexOf("/"));
     if (remoteDir) {
       await client.ensureDir(remoteDir);
     }
 
-    // Subir archivo
     const readable = Readable.from(buffer);
     await client.uploadFrom(readable, remotePath);
 
-    // Construir URL pública (quitar /web/ del inicio si existe)
     const publicPath = remotePath.replace(/^\/web\//, "/");
-    const publicUrl = `https://amesfe.org${publicPath}`;
-
-    return publicUrl;
+    return `https://amesfe.org${publicPath}`;
   } catch (error) {
     console.error("FTP upload error:", error);
     throw new Error("Error al subir archivo al FTP");
-  } finally {
-    client.close();
   }
 }
 

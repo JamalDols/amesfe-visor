@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node scripts/generate-csv.js)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
