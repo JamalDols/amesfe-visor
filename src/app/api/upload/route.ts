@@ -18,6 +18,19 @@ async function processImage(buffer: Buffer): Promise<Buffer> {
     .toBuffer();
 }
 
+function describeError(error: unknown): string {
+  const code = (error as { code?: string })?.code;
+  const message = error instanceof Error ? error.message : "";
+
+  if (code === "ER_NO_REFERENCED_ROW_2") return "El álbum seleccionado ya no existe.";
+  if (code === "ECONNREFUSED" || code === "ETIMEDOUT" || code === "PROTOCOL_CONNECTION_LOST") return "No se pudo conectar con la base de datos.";
+  if (code === "ER_CON_COUNT_ERROR" || code === "ER_USER_LIMIT_REACHED") return "La base de datos tiene demasiadas conexiones. Inténtalo de nuevo en unos segundos.";
+  if (/Input buffer contains unsupported image format|Input file is missing|corrupt|unsupported image/i.test(message)) return "La imagen está dañada o su formato no es válido.";
+  if (message.startsWith("No se pudo conectar al servidor FTP") || message.startsWith("Error al subir archivo al FTP")) return message;
+
+  return message || "Error desconocido";
+}
+
 export async function POST(request: NextRequest) {
   try {
     console.log("🚀 Iniciando upload de imágenes...");
@@ -92,19 +105,25 @@ export async function POST(request: NextRequest) {
         uploadResults.push({
           fileName: file.name,
           success: false,
-          error: fileError instanceof Error ? fileError.message : "Unknown error",
+          error: describeError(fileError),
         });
       }
     }
 
     console.log(`🎯 Resumen del upload: ${successCount}/${files.length} exitosos`);
 
-    return NextResponse.json({
-      success: true,
-      uploaded: successCount,
-      total: files.length,
-      results: uploadResults,
-    });
+    const firstError = uploadResults.find((r) => !r.success)?.error;
+
+    return NextResponse.json(
+      {
+        success: successCount === files.length,
+        uploaded: successCount,
+        total: files.length,
+        results: uploadResults,
+        ...(successCount < files.length && { error: firstError }),
+      },
+      { status: successCount === 0 ? 500 : 200 }
+    );
   } catch (error) {
     if (error instanceof Error && error.message === "No autenticado") {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });

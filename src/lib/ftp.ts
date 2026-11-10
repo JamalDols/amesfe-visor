@@ -58,7 +58,8 @@ export async function uploadFileWithClient(client: Client, buffer: Buffer, remot
     return `https://amesfe.org${publicPath}`;
   } catch (error) {
     console.error("FTP upload error:", error);
-    throw new Error("Error al subir archivo al FTP");
+    const reason = error instanceof Error ? error.message : "error desconocido";
+    throw new Error(`Error al subir archivo al FTP (${reason})`);
   }
 }
 
